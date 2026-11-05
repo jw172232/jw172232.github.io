@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Get Out the Vote — Reinforcement Learning Lab</title>
+  <style>
+    :root { color-scheme: light; --ink:#172b3a; --muted:#60717e; --paper:#f4f6f3; --card:#fff; --line:#dce4e2; --teal:#126b63; --teal-light:#e1f1ed; --gold:#db9c32; --red:#bc5b54; }
+    * { box-sizing:border-box }
+    body { margin:0; background:var(--paper); color:var(--ink); font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif }
+    button,input { font:inherit }
+    button { cursor:pointer }
+    .shell { max-width:1120px; margin:auto; padding:32px 22px 54px }
+    header { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:24px }
+    .eyebrow { color:var(--teal); font-size:12px; font-weight:800; letter-spacing:.12em; text-transform:uppercase }
+    h1 { font-family:Georgia,serif; font-size:clamp(30px,5vw,44px); line-height:1.1; letter-spacing:-.03em; margin:6px 0 }
+    header p { color:var(--muted); margin:0; max-width:640px }
+    .state-count { background:var(--teal-light); border-radius:999px; padding:9px 14px; white-space:nowrap; color:#155e57; font-size:13px; font-weight:700 }
+    .layout { display:grid; grid-template-columns:minmax(320px,1.03fr) minmax(360px,.97fr); gap:18px; align-items:start }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:20px; box-shadow:0 5px 20px #163c3510 }
+    .card h2 { font:700 19px/1.25 Georgia,serif; margin:0 0 5px }
+    .sub { color:var(--muted); font-size:13px; margin:0 0 15px }
+    .board-wrap { max-width:430px; margin:auto }
+    .board { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; aspect-ratio:1; padding:10px; background:#eaf0ed; border-radius:13px; border:1px solid #dce7e1 }
+    .cell { position:relative; border-radius:9px; background:#f9fbf9; display:grid; place-items:center; min-width:0; color:#aab7b3 }
+    .cell::after { content:""; width:5px; height:5px; border-radius:50%; background:#d9e2df }
+    .cell.house { background:#fff5df; color:#855714; border:1px solid #f0dbaf }
+    .cell.house::after { display:none }
+    .cell .house-icon { font-size:24px; line-height:1 }
+    .cell .house-label { position:absolute; bottom:3px; font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.03em }
+    .cell.voted { background:#e2f2ed; border-color:#9bc9ba }
+    .cell.voted .house-icon { filter:saturate(.85) }
+    .cell.agent { box-shadow:inset 0 0 0 3px var(--teal); background:#d8eeea }
+    .cell.agent .person { position:absolute; font-size:24px; z-index:2; transform:translateY(-2px) }
+    .legend { display:flex; flex-wrap:wrap; gap:14px; color:var(--muted); font-size:12px; margin:13px 0 15px }
+    .legend span { display:flex; align-items:center; gap:6px }
+    .swatch { display:inline-grid; place-items:center; width:17px; height:17px; border-radius:5px; font-size:11px; background:#fff5df }
+    .status { display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--line); padding-top:13px; margin-top:4px; gap:12px }
+    .metrics { display:flex; gap:20px }
+    .metric small { display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.07em; font-weight:700 }
+    .metric strong { font-size:20px; font-variant-numeric:tabular-nums }
+    .controls { display:grid; grid-template-columns:1fr 1fr; gap:8px }
+    .btn { border:1px solid var(--line); border-radius:9px; padding:9px 12px; background:#fff; color:var(--ink); font-weight:700; font-size:13px; transition:.15s ease }
+    .btn:hover:not(:disabled) { border-color:#9ab7ae; transform:translateY(-1px) }
+    .btn:disabled { opacity:.5; cursor:not-allowed }
+    .btn.primary { background:var(--teal); border-color:var(--teal); color:white }
+    .btn.primary:hover:not(:disabled) { background:#0e5952 }
+    .directions { display:grid; grid-template-columns:repeat(3,40px); justify-content:center; gap:4px; margin:10px auto 2px }
+    .directions .btn { padding:5px; font-size:17px; line-height:1.3 }
+    .directions .empty { visibility:hidden }
+    .section-gap { margin-top:18px }
+    .reward-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px 12px }
+    label { color:var(--muted); font-size:12px; font-weight:650 }
+    .reward-input { display:flex; align-items:center; gap:8px; margin-top:4px }
+    .reward-input input, .reward-input select { width:100%; min-width:0; padding:7px 8px; border:1px solid var(--line); border-radius:7px; color:var(--ink); background:#fbfcfb }
+    .reward-note { margin:10px 0 0; color:var(--muted); font-size:11px }
+    .agent-actions { display:flex; flex-wrap:wrap; gap:8px; margin:12px 0 8px }
+    .agent-actions .btn { flex:1 1 125px }
+    .agent-summary { display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--line); padding-top:11px; margin-top:12px; color:var(--muted); font-size:12px }
+    .agent-summary strong { color:var(--ink); font-variant-numeric:tabular-nums }
+    .chart-card { grid-column:1 / -1 }
+    .chart-head { display:flex; justify-content:space-between; align-items:flex-start; gap:16px }
+    .chart-key { display:flex; gap:17px; color:var(--muted); font-size:12px; white-space:nowrap }
+    .key-dot { display:inline-block; height:9px; width:9px; border-radius:50%; background:var(--teal); margin-right:6px }
+    .key-dot.gold { background:var(--gold) }
+    .chart { display:block; width:100%; height:220px; margin-top:8px }
+    .chart-caption { color:var(--muted); font-size:12px; margin:2px 0 0 }
+    .notice { min-height:22px; margin-top:10px; font-size:13px; color:var(--teal); font-weight:650 }
+    @media(max-width:780px) { header { align-items:flex-start; flex-direction:column } .layout { grid-template-columns:1fr } .chart-card { grid-column:auto } }
+    @media(max-width:420px) { .shell { padding:22px 12px 36px } .card { padding:16px } .chart-head { flex-direction:column } .chart-key { white-space:normal } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><div class="eyebrow">Reinforcement learning · field lab</div><h1>Get Out the Vote</h1><p>Canvass a neighborhood before the polls close. Find both supporters and get them to vote; every move has a cost.</p></div>
+      <div class="state-count">200 possible states</div>
+    </header>
+    <div class="layout">
+      <section class="card" aria-labelledby="game-title">
+        <h2 id="game-title">The neighborhood</h2>
+        <p class="sub">25 moves until polls close · Knock when standing on a house</p>
+        <div class="board-wrap"><div class="board" id="board" role="grid" aria-label="Five by five neighborhood grid"></div></div>
+        <div class="legend"><span><i class="swatch">🏠</i> Supporter</span><span><i class="swatch">🏠</i> Not a supporter</span><span>● You</span><span>✓ Voted</span></div>
+        <div class="status">
+          <div class="metrics"><div class="metric"><small>Moves left</small><strong id="moves-left">25</strong></div><div class="metric"><small>Score</small><strong id="score">0</strong></div><div class="metric"><small>Supporters out</small><strong id="turned-out">0 / 2</strong></div></div>
+        </div>
+        <div class="directions" aria-label="Move controls"><span class="empty"></span><button class="btn" data-human="up" aria-label="Move up">↑</button><span class="empty"></span><button class="btn" data-human="left" aria-label="Move left">←</button><button class="btn" data-human="knock" aria-label="Knock on this house">⌂</button><button class="btn" data-human="right" aria-label="Move right">→</button><span class="empty"></span><button class="btn" data-human="down" aria-label="Move down">↓</button><span class="empty"></span></div>
+        <div class="notice" id="notice" aria-live="polite">Use arrow keys or buttons. Start at the northwest corner.</div>
+      </section>
+      <div>
+        <section class="card" aria-labelledby="reward-title">
+          <h2 id="reward-title">Reward for each move</h2>
+          <p class="sub">Change the points and see what the agent learns to value.</p>
+          <div class="reward-grid">
+            <label>Each move (step cost)<span class="reward-input"><input type="number" id="r-step" value="-1" step="1"></span></label>
+            <label>Knock on a supporter<span class="reward-input"><input type="number" id="r-support" value="10" step="1"></span></label>
+            <label>Knock on a non-supporter<span class="reward-input"><input type="number" id="r-nonsupport" value="-10" step="1"></span></label>
+            <label>Turn out both supporters<span class="reward-input"><input type="number" id="r-goal" value="20" step="1"></span></label>
+            <label>Reward scheme<span class="reward-input"><select id="reward-scheme"><option value="standard">Standard campaign goal</option><option value="turf">Priority turf activity bonus</option></select></span></label>
+            <label>Bonus for each action at a supporter’s door<span class="reward-input"><input type="number" id="r-turf" value="3" step="1"></span></label>
+          </div>
+          <p class="reward-note">Step cost applies to every action, including a knock. The goal bonus is added once, on the move that gets the second supporter to vote. The optional priority turf scheme adds its bonus on every action that starts at a supporter’s house, even after that supporter has voted. Standard is selected by default. Changing a reward setting resets the agent so it learns under the selected points.</p>
+        </section>
+        <section class="card section-gap" aria-labelledby="agent-title">
+          <h2 id="agent-title">Tabular Q-learning</h2>
+          <p class="sub">Learns from its own games, using the same reward shown above.</p>
+          <div class="agent-actions"><button class="btn primary" id="train-100">Train 100 games</button><button class="btn primary" id="train-1000">Train 1,000 games</button><button class="btn" id="reset-agent">Reset agent</button><button class="btn" id="watch">Watch it play</button></div>
+          <div class="agent-summary"><span>Training games <strong id="games-count">0</strong></span><span>ε 0.2 · α 0.2 · γ 0.95</span></div>
+        </section>
+      </div>
+      <section class="card chart-card" aria-labelledby="chart-title">
+        <div class="chart-head"><div><h2 id="chart-title">Learning curve</h2><p class="sub">Performance in consecutive blocks of 50 training games.</p></div><div class="chart-key"><span><i class="key-dot"></i>Average reward</span><span><i class="key-dot gold"></i>Both supporters vote</span></div></div>
+        <canvas class="chart" id="chart" aria-label="Learning curve chart"></canvas>
+        <p class="chart-caption">The goal rate counts games where both supporters voted, regardless of the total reward. The state space is 25 locations × 8 voting combinations = 200 states.</p>
+      </section>
+    </div>
+  </main>
+  <script>
+    // One step-cost term, one door-outcome term, and a one-time real-goal bonus.
+    function reward(event, points) {
+      let total = 0;
+      total += points.step; // Every action uses one move, so each action gets this cost.
+      if (event.knock === "supporter") total += points.supporter; // Reward turning out a supporter, once.
+      if (event.knock === "non-supporter") total += points.nonSupporter; // Apply the configured result of a non-supporter door.
+      if (event.goalReached) total += points.goal; // Add a one-time bonus when the second supporter votes.
+      if (event.atSupporterHouse) total += points.turfPresence; // Optional activity bonus, repeated on each action from a supporter house.
+      return total;
+    }
+
+    const SIZE = 5, HORIZON = 25, ACTIONS = ["up", "right", "down", "left", "knock"];
+    const houses = [
+      { x: 1, y: 1, supporter: true, name: "A" },
+      { x: 4, y: 1, supporter: false, name: "B" },
+      { x: 3, y: 4, supporter: true, name: "C" }
+    ];
+    const points = { step: -1, supporter: 10, nonSupporter: -10, goal: 20, turfPresence: 0 };
+    const rewardInputs = { step: "r-step", supporter: "r-support", nonSupporter: "r-nonsupport", goal: "r-goal", turf: "r-turf" };
+    let human = freshState(), trainingGames = 0, q = new Map(), history = [], rng = seededRandom(172232), busy = false;
+
+    function freshState() { return { x: 0, y: 0, votes: 0, moves: HORIZON, score: 0, done: false }; }
+    function seededRandom(seed) {
+      let value = seed >>> 0;
+      return function() { value = (value + 0x6D2B79F5) >>> 0; let t = value; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    }
+    function randomInt(max) { return Math.floor(rng() * max); }
+    function key(s) { return `${s.x},${s.y},${s.votes}`; }
+    function validActions(s) {
+      const out = [];
+      if (s.y > 0) out.push("up"); if (s.x < 4) out.push("right");
+      if (s.y < 4) out.push("down"); if (s.x > 0) out.push("left");
+      if (houses.some((h, i) => h.x === s.x && h.y === s.y && !(s.votes & (1 << i)))) out.push("knock");
+      return out;
+    }
+    function transition(s, action) {
+      const next = { ...s, moves: s.moves - 1 };
+      const event = { knock: null, goalReached: false, atSupporterHouse: houses.some(h => h.supporter && h.x === s.x && h.y === s.y) };
+      if (action === "up") next.y--; if (action === "right") next.x++;
+      if (action === "down") next.y++; if (action === "left") next.x--;
+      if (action === "knock") {
+        const i = houses.findIndex(h => h.x === s.x && h.y === s.y);
+        if (i >= 0 && !(s.votes & (1 << i))) {
+          event.knock = houses[i].supporter ? "supporter" : "non-supporter";
+          next.votes |= 1 << i;
+          if (houses[i].supporter) {
+            const wasGoal = houses.filter((h, j) => h.supporter && (s.votes & (1 << j))).length === 2;
+            event.goalReached = !wasGoal && houses.filter((h, j) => h.supporter && (next.votes & (1 << j))).length === 2;
+          }
+        }
+      }
+      const pointsNow = reward(event, points);
+      next.score += pointsNow;
+      next.done = next.moves <= 0 || houses.filter((h, i) => h.supporter && (next.votes & (1 << i))).length === 2;
+      return { state: next, reward: pointsNow, event };
+    }
+    function values(s) { const k = key(s); if (!q.has(k)) q.set(k, Object.fromEntries(ACTIONS.map(a => [a, 0]))); return q.get(k); }
+    function choose(s, explore) {
+      const acts = validActions(s);
+      if (explore && rng() < 0.2) return acts[randomInt(acts.length)];
+      const v = values(s), high = Math.max(...acts.map(a => v[a]));
+      return acts.filter(a => v[a] === high)[randomInt(acts.filter(a => v[a] === high).length)];
+    }
+    function learnOne() {
+      let s = freshState(), total = 0, goal = false;
+      while (!s.done) {
+        const action = choose(s, true), result = transition(s, action), next = result.state;
+        const row = values(s), old = row[action];
+        const future = next.done ? 0 : Math.max(...validActions(next).map(a => values(next)[a]));
+        row[action] = old + 0.2 * (result.reward + 0.95 * future - old);
+        s = next; total += result.reward; goal = goal || result.event.goalReached;
+      }
+      return { total, goal };
+    }
+    let pendingBlock = [];
+    function trainTracked(count) {
+      if (busy) return;
+      const results = [];
+      for (let i = 0; i < count; i++) { results.push(learnOne()); trainingGames++; if (trainingGames % 50 === 0) { const all = pendingBlock.concat(results); const last = all.slice(-50); history.push({ game: trainingGames, average: last.reduce((a, r) => a + r.total, 0) / last.length, rate: last.filter(r => r.goal).length / last.length }); pendingBlock = []; } }
+      const remainder = trainingGames % 50;
+      pendingBlock = remainder ? pendingBlock.concat(results.slice(-remainder)) : [];
+      document.getElementById("games-count").textContent = trainingGames.toLocaleString(); drawChart();
+      setNotice(`Trained ${count.toLocaleString()} games. The agent has seen ${trainingGames.toLocaleString()} in total.`);
+    }
+    function currentPoints() {
+      for (const [name, id] of Object.entries(rewardInputs)) if (name !== "turf") points[name] = Number(document.getElementById(id).value) || 0;
+      const scheme = document.getElementById("reward-scheme").value;
+      points.turfPresence = scheme === "turf" ? Number(document.getElementById(rewardInputs.turf).value) || 0 : 0;
+    }
+    function resetAgent(message = "Agent reset. The seeded random sequence has restarted.") {
+      q = new Map(); history = []; pendingBlock = []; trainingGames = 0; rng = seededRandom(172232);
+      document.getElementById("games-count").textContent = "0"; drawChart(); setNotice(message);
+    }
+    function setNotice(message) { document.getElementById("notice").textContent = message; }
+    function turnHuman(action) {
+      if (human.done || busy) return;
+      const acts = validActions(human);
+      if (!acts.includes(action)) { if (action === "knock") setNotice("There is no unvisited house on this square."); return; }
+      currentPoints(); const result = transition(human, action); human = result.state; render();
+      const event = result.event;
+      if (event.goalReached) setNotice("Both supporters voted! You reached the real goal.");
+      else if (event.knock === "supporter") setNotice("A supporter is heading to the polls.");
+      else if (event.knock === "non-supporter") setNotice("No supporter here. Keep canvassing.");
+      else if (human.done) setNotice("Polls closed. Your final score is " + human.score + ".");
+      else setNotice("Move made. " + human.moves + " moves left.");
+    }
+    function render() {
+      const board = document.getElementById("board"); board.innerHTML = "";
+      for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
+        const h = houses.find((v, i) => v.x === x && v.y === y), index = h ? houses.indexOf(h) : -1;
+        const cell = document.createElement("div"); cell.className = "cell" + (h ? " house" : "") + (h && (human.votes & (1 << index)) ? " voted" : "") + (human.x === x && human.y === y ? " agent" : ""); cell.setAttribute("role", "gridcell");
+        if (h) { const icon = document.createElement("span"); icon.className = "house-icon"; icon.textContent = "⌂"; const label = document.createElement("span"); label.className = "house-label"; label.textContent = h.supporter ? `Supporter ${h.name}` : "Not a supporter"; cell.append(icon, label); }
+        if (human.x === x && human.y === y) { const person = document.createElement("span"); person.className = "person"; person.textContent = "●"; cell.append(person); }
+        board.append(cell);
+      }
+      document.getElementById("moves-left").textContent = human.moves; document.getElementById("score").textContent = human.score;
+      const turned = houses.filter((h, i) => h.supporter && (human.votes & (1 << i))).length;
+      document.getElementById("turned-out").textContent = `${turned} / 2`;
+      document.querySelectorAll("[data-human]").forEach(b => b.disabled = human.done || busy);
+      document.getElementById("watch").disabled = busy;
+      document.getElementById("train-100").disabled = busy;
+      document.getElementById("train-1000").disabled = busy;
+      document.getElementById("reset-agent").disabled = busy;
+      Object.values(rewardInputs).forEach(id => document.getElementById(id).disabled = busy);
+      document.getElementById("reward-scheme").disabled = busy;
+    }
+    function drawChart() {
+      const canvas = document.getElementById("chart"), rect = canvas.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.max(1, rect.width * dpr); canvas.height = 220 * dpr;
+      const ctx = canvas.getContext("2d"); ctx.scale(dpr, dpr);
+      const w = rect.width, h = 220, pad = { l:48, r:46, t:12, b:31 }, cw = w - pad.l - pad.r, ch = h - pad.t - pad.b;
+      ctx.clearRect(0, 0, w, h); ctx.font = "11px system-ui"; ctx.lineWidth = 1;
+      const minY = Math.min(-50, ...history.map(p => p.average - 5)), maxY = Math.max(35, ...history.map(p => p.average + 5));
+      const yFor = v => pad.t + ch * (1 - (v - minY) / (maxY - minY));
+      [minY, (minY + maxY) / 2, maxY].forEach(v => { const y = yFor(v); ctx.strokeStyle = "#e4eae7"; ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(w - pad.r, y); ctx.stroke(); ctx.fillStyle = "#74847e"; ctx.textAlign = "right"; ctx.fillText(Math.round(v), pad.l - 8, y + 4); });
+      [0, .5, 1].forEach(v => { const y = pad.t + ch * (1 - v); ctx.fillStyle = "#a27824"; ctx.textAlign = "left"; ctx.fillText(Math.round(v * 100) + "%", w - pad.r + 8, y + 4); });
+      ctx.fillStyle = "#74847e"; ctx.textAlign = "center"; ctx.fillText("Training games", pad.l + cw / 2, h - 4);
+      if (!history.length) { ctx.textAlign = "center"; ctx.fillStyle = "#85948e"; ctx.fillText("Train the agent to see how it learns", w / 2, pad.t + ch / 2); return; }
+      const xFor = i => pad.l + (history.length === 1 ? cw / 2 : cw * i / (history.length - 1));
+      const plot = (field, color, mapY) => { ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.beginPath(); history.forEach((p, i) => { const x = xFor(i), y = mapY(p[field]); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.stroke(); history.forEach((p, i) => { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(xFor(i), mapY(p[field]), 2.5, 0, Math.PI * 2); ctx.fill(); }); };
+      plot("average", "#126b63", yFor); plot("rate", "#db9c32", v => pad.t + ch * (1 - v));
+      ctx.fillStyle = "#74847e"; ctx.textAlign = "left"; ctx.fillText("50", pad.l, h - 16); ctx.textAlign = "right"; ctx.fillText(String(history[history.length - 1].game), w - pad.r, h - 16);
+    }
+    async function watchGame() {
+      if (busy) return;
+      currentPoints(); busy = true; human = freshState(); render(); setNotice("The agent is playing without exploration.");
+      await new Promise(r => setTimeout(r, 350));
+      while (!human.done) {
+        const action = choose(human, false); human = transition(human, action).state; render();
+        await new Promise(r => setTimeout(r, 280));
+      }
+      busy = false; render();
+      const goal = houses.filter((h, i) => h.supporter && (human.votes & (1 << i))).length === 2;
+      setNotice(goal ? `The agent turned out both supporters and scored ${human.score}.` : `Polls closed. The agent scored ${human.score} and turned out ${document.getElementById("turned-out").textContent}.`);
+    }
+    document.querySelectorAll("[data-human]").forEach(b => b.addEventListener("click", () => turnHuman(b.dataset.human)));
+    document.addEventListener("keydown", e => { if (e.target.matches("input, textarea, select")) return; const map = { ArrowUp:"up", ArrowRight:"right", ArrowDown:"down", ArrowLeft:"left", " ":"knock", Enter:"knock" }; if (map[e.key]) { e.preventDefault(); turnHuman(map[e.key]); } });
+    document.getElementById("train-100").addEventListener("click", () => { currentPoints(); trainTracked(100); });
+    document.getElementById("train-1000").addEventListener("click", () => { currentPoints(); trainTracked(1000); });
+    document.getElementById("reset-agent").addEventListener("click", () => resetAgent());
+    document.getElementById("watch").addEventListener("click", watchGame);
+    Object.values(rewardInputs).forEach(id => document.getElementById(id).addEventListener("change", () => { currentPoints(); resetAgent("Reward settings changed. The agent is ready to learn with the new points."); }));
+    document.getElementById("reward-scheme").addEventListener("change", () => { currentPoints(); resetAgent("Reward scheme changed. The agent is ready to learn with the new points."); });
+    window.addEventListener("resize", drawChart);
+    render(); drawChart();
+  </script>
+</body>
+</html>
