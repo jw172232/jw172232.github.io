@@ -38,6 +38,7 @@
     .cell .house-label.long { font-size:8px; letter-spacing:0 }
     .cell.house.supporter.voted { background:#dbe7ff; border-color:#91afe8 }
     .cell.house.non-supporter.voted { background:#ffe0e2; border-color:#df9298 }
+    .cell.house.supporter.voted .house-icon { font-size:19px; font-weight:900 }
     .cell.voted .house-icon { filter:saturate(.85) }
     .cell.agent { box-shadow:inset 0 0 0 3px var(--teal); background:#e0eaff }
     .cell.agent .person { position:absolute; font-size:24px; z-index:2; transform:translateY(-2px) }
@@ -241,7 +242,7 @@
       for (let y = 0; y < SIZE; y++) for (let x = 0; x < SIZE; x++) {
         const h = houses.find((v, i) => v.x === x && v.y === y), index = h ? houses.indexOf(h) : -1;
         const cell = document.createElement("div"); cell.className = "cell" + (h ? ` house ${h.supporter ? "supporter" : "non-supporter"}` : "") + (h && (human.votes & (1 << index)) ? " voted" : "") + (human.x === x && human.y === y ? " agent" : ""); cell.setAttribute("role", "gridcell");
-        if (h) { const icon = document.createElement("span"); icon.className = "house-icon"; icon.textContent = "⌂"; const label = document.createElement("span"); label.className = "house-label" + (h.supporter ? "" : " long"); label.textContent = h.supporter ? `Supporter ${h.name}` : "Not a supporter"; cell.append(icon, label); }
+        if (h) { const hasVoted = h.supporter && (human.votes & (1 << index)); const icon = document.createElement("span"); icon.className = "house-icon"; icon.textContent = hasVoted ? "✓" : "⌂"; const label = document.createElement("span"); label.className = "house-label" + (h.supporter ? "" : " long"); label.textContent = h.supporter ? `Supporter ${h.name}` : "Not a supporter"; cell.append(icon, label); }
         if (human.x === x && human.y === y) { const person = document.createElement("span"); person.className = "person"; person.textContent = "●"; cell.append(person); }
         board.append(cell);
       }
